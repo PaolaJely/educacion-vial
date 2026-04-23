@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Quiz, Question, QuizResult } from '../types';
+import { Quiz, QuizResult } from '../types';
 import { quizzes } from '../data/mockData';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -15,12 +15,14 @@ export function QuizzesScreen({ onBack, onQuizComplete }: QuizzesScreenProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
 
   const handleStartQuiz = (quiz: Quiz) => {
     setSelectedQuiz(quiz);
     setCurrentQuestionIndex(0);
     setSelectedAnswers([]);
     setShowResults(false);
+    setQuizResult(null);
   };
 
   const handleSelectAnswer = (answerIndex: number) => {
@@ -42,17 +44,24 @@ export function QuizzesScreen({ onBack, onQuizComplete }: QuizzesScreenProps) {
   };
 
   const handleFinishQuiz = () => {
-    if (selectedQuiz) {
-      const result: QuizResult = {
-        quizId: selectedQuiz.id,
-        quizTitle: selectedQuiz.title,
-        score: 8,
-        total: 10,
-        date: new Date().toLocaleDateString('es-MX')
-      };
-      onQuizComplete(result);
-      setShowResults(true);
-    }
+    if (!selectedQuiz) return;
+
+    const totalQuestions = selectedQuiz.questions.length;
+    const correctCount = selectedQuiz.questions.reduce((acc, question, index) => {
+      return acc + (selectedAnswers[index] === question.correctAnswer ? 1 : 0);
+    }, 0);
+    const score = Math.round((correctCount / totalQuestions) * 10);
+
+    const result: QuizResult = {
+      quizId: selectedQuiz.id,
+      quizTitle: selectedQuiz.title,
+      score,
+      total: 10,
+      date: new Date().toLocaleDateString('es-MX')
+    };
+    setQuizResult(result);
+    onQuizComplete(result);
+    setShowResults(true);
   };
 
   const handleBackToList = () => {
@@ -60,6 +69,7 @@ export function QuizzesScreen({ onBack, onQuizComplete }: QuizzesScreenProps) {
     setShowResults(false);
     setCurrentQuestionIndex(0);
     setSelectedAnswers([]);
+    setQuizResult(null);
   };
 
   // Results Screen
@@ -76,7 +86,7 @@ export function QuizzesScreen({ onBack, onQuizComplete }: QuizzesScreenProps) {
             
             <div className="bg-gray-50 p-6 rounded-lg">
               <p className="text-gray-600 mb-2">Tu calificación</p>
-              <p className="text-blue-600">8/10</p>
+              <p className="text-blue-600">{quizResult?.score ?? 0}/10</p>
             </div>
             
             <p className="text-green-600">
